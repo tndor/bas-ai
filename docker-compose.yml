@@ -3,7 +3,7 @@ services:
     build: .
     container_name: bas-ai-api
     ports:
-      - "5000:5000"
+      - "80:5000"
     environment:
       - OLLAMA_HOST=http://ollama:11434
       - PYTHONUNBUFFERED=1

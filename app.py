@@ -5,7 +5,7 @@ from flask import Flask, jsonify
 app = Flask(__name__)
 
 DATA_ENDPOINT = "https://fonteyn.cloud/api/dashboard"
-CHAT_MODEL = "phi3"
+CHAT_MODEL = "hf.co/bartowski/Llama-3.2-1B-Instruct-GGUF"
 SYSTEM_PROMPT = """You are a senior business analyst AI assistant.
 Your task is to analyze a JSON object containing a company's sales and logistics
 data and provide a concise report of key insights for an internal sprint review. 
