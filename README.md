@@ -17,6 +17,7 @@ The AI model is the most resource-intensive part of this application. For the `L
 
 ### Recommended VPS Providers
 You can get a VPS that meets these requirements from many cloud providers. Here are a few popular options known for their ease of use:
+*   AWS
 *   DigitalOcean
 *   Linode (by Akamai)
 *   Hetzner Cloud
