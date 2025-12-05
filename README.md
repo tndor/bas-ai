@@ -1,155 +1,133 @@
-RAGMonsters Wiki Copilot (Simple Local RAG)
-===========================================
+# Easy VPS Deployment Guide for Business Analysis AI
 
-This project implements a local RAG system using **Python**, **Flask**, **LangChain**, **ChromaDB**, and **Ollama**. It allows you to chat with your own Markdown notes via a dark-themed web interface without sending data to the cloud.
+This guide will walk you through deploying the Business Analysis AI on a Virtual Private Server (VPS). This tutorial is designed for users who may not have a deep background in server infrastructure. By the end, you'll have a private, running instance of the AI analyst.
 
-<img src="media/scr1.png" alt="App Screenshot" width="75%"/>
+## Part 1: Choosing Your Virtual Private Server (VPS)
 
-Features
---------
+### What is a VPS?
+Think of a VPS as your own personal computer that lives in a professional data center, connected to the internet 24/7. You can rent one from various providers, giving you a clean slate to run applications like this one.
 
--   **Privacy-First**: Runs entirely locally using Ollama.
+### Server Requirements
+The AI model is the most resource-intensive part of this application. For the `Llama-3.2-1B` model used in this project, here are the recommended minimum server specifications:
 
--   **Web Interface**: A clean, dark-themed chat UI ("RAGMonsters Wiki Copilot").
+*   **Operating System**: A modern Linux distribution (e.g., **Ubuntu 22.04 LTS**).
+*   **CPU**: **2 vCPUs** or more.
+*   **RAM**: **8 GB** of RAM. While the model might run on less, 8 GB provides a comfortable buffer for the operating system, Docker, and the AI model itself.
+*   **Storage**: **30 GB SSD** or more. The base OS, Docker, and the AI models will take up several gigabytes.
 
--   **Automated Setup**: Docker container handles model downloading and database building automatically.
+### Recommended VPS Providers
+You can get a VPS that meets these requirements from many cloud providers. Here are a few popular options known for their ease of use:
+*   DigitalOcean
+*   Linode (by Akamai)
+*   Hetzner Cloud
 
--   **Custom Knowledge**: Ingests `.md` files from a local directory.
+Choose a provider, create an account, and "spin up" a new server with the Ubuntu 22.04 image and the specs listed above.
 
--   **Lightweight**: Optimized for local hardware using efficient embedding models (`nomic-embed-text`) and small LLMs (`Llama 3.2 1B`).
+---
 
--   **Smart Query Routing**: Uses a classification step to detect if a user is asking a "Specific" question (retrieving precise details) or a "Broad" question (listing/summarizing multiple entities), adjusting retrieval depth accordingly.
+## Part 2: One-Time Server Setup
 
-Option 1: Docker (Recommended)
-------------------------------
+Once your VPS is running, the provider will give you an IP address. You'll use this to connect.
 
-This method automates everything. You do not need to install Python or Ollama manually on your machine.
+### Step 2.1: Connect to Your Server
+Open a terminal on your local machine (Terminal on Mac/Linux, PowerShell or WSL on Windows) and connect to the server using SSH (Secure Shell).
 
-### Prerequisites
-
--   **Docker Desktop** (or Docker Engine) installed and running.
-
-### 1\. Run the Application
-
-Open your terminal in the project folder and run:
-
+```bash
+ssh root@<your_vps_ip>
 ```
-docker-compose up --build
+*(Replace `<your_vps_ip>` with the actual IP address of your server.)*
 
-```
+You may be asked to confirm the authenticity of the host. Type `yes` and press Enter. Then, provide the password given to you by your VPS provider.
 
-**What happens next?**
+### Step 2.2: Install Docker
+Docker is the technology we'll use to run the application in isolated "containers." It makes deployment incredibly simple and clean.
 
-1.  The containers will start.
+Run the following commands to update your server and install Docker and Docker Compose.
 
-2.  The system will automatically check if you have the required AI models. If not, it will download them (this may take a few minutes on the first run).
+```bash
+# Update package lists
+sudo apt-get update && sudo apt-get upgrade -y
 
-3.  It will check for a vector database. If one doesn't exist, it will scan your `dataset/` folder and build it.
-
-4.  Once you see `Starting Flask App` in the logs, the app is ready.
-
-### 2\. Access the App
-
-Open your browser and go to: **`http://localhost:5000`**
-
-Option 2: Manual Python Setup
------------------------------
-
-Use this method if you want to modify the code or run without Docker.
-
-### Prerequisites
-
-1.  **Python 3.10+** installed.
-
-2.  [**Ollama**](https://ollama.com/ "null") installed and running.
-
-### 1\. Install Dependencies
-
-```
-python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
+# Install Docker and Docker Compose
+sudo apt-get install -y docker.io docker-compose
 ```
 
-### 2\. Pull Ollama Models
+### Step 2.3: Add Your User to the Docker Group (Optional, but Recommended)
+To avoid having to type `sudo` for every Docker command, you can add your user to the `docker` group.
 
-You must download the specific models used in the code manually:
+```bash
+# This command assumes you are logged in as a non-root user.
+# If you are 'root', you can skip this.
+sudo usermod -aG docker ${USER}
 
+# You will need to log out and log back in for this to take effect.
+exit
 ```
-ollama pull nomic-embed-text
-ollama pull hf.co/bartowski/Llama-3.2-1B-Instruct-GGUF
+After running `exit`, reconnect to your server using the same `ssh` command as before.
 
+---
+
+## Part 3: Deploying the AI Application
+
+Now for the exciting part! Let's get the application code and run it.
+
+### Step 3.1: Clone the Project
+First, you need to copy the project files onto your server. We'll do this using `git`. If you don't have `git` installed, you can install it with `sudo apt-get install -y git`.
+
+```bash
+git clone https://github.com/tndor/bas-ai.git
 ```
+*(Note: This URL is a placeholder. Replace it with the actual URL of your Git repository if it's different.)*
 
-### 3\. Build the Database
+### Step 3.2: Start the Application
+Navigate into the newly created project directory and use a single command to start everything.
 
-Whenever you add new `.md` files to the `dataset/` folder, run:
-
-```
-python dataset.py
-
-```
-
-### 4\. Run the Server
-
-```
-python app.py
-
-```
-
-Configuration
--------------
-
-You can adjust these variables in `docker-compose.yml` (for Docker) or `app.py` (for manual run):
-
--   **`EMBEDDING_MODEL`**: Defaults to `'nomic-embed-text'`. Must match a model pulled in Ollama.
-
--   **`chunk_size`**: (In `dataset.py`) How large the text snippets are (default `500`).
-
--   **`chunk_overlap`**: (In `dataset.py`) Overlap between snippets to preserve context (default `100`).
-
-Advanced Features: Query Routing
---------------------------------
-
-The system includes a `question_filtering` function that classifies user intent to improve answers:
-
--   **Specific Questions** ("What is the weight of a Flameburst?"): The system retrieves fewer, highly relevant chunks (`k=3`) to prevent hallucination.
-
--   **Broad Questions** ("List all monsters in the Volcanic biome"): The system detects the request for aggregation and retrieves a larger number of chunks (`k=10+`) to provide a comprehensive answer.
-
-*Note: This classification uses "Few-Shot Prompting" and JSON mode to ensure the small 1B model follows instructions accurately.*
-
-Troubleshooting
----------------
-
-### Docker Issues
-
-**Q: Error `bind: address already in use` (Port 11434)** **A:** This means Ollama is already running on your computer and conflictng with the Docker version.
-
--   **Fix:** Stop your local Ollama application (Quit from system tray or run `sudo service ollama stop` on Linux) and try `docker-compose up` again.
-
-**Q: How do I rebuild the database in Docker?** **A:** If you added new notes and want to refresh the Docker database:
-
-```
-docker-compose down -v   # The -v flag deletes the database volume
-docker-compose up        # Rebuilds the DB on startup
-
+```bash
+cd bas-ai
+docker-compose up --build -d
 ```
 
-### General Issues
+### What's Happening in the Background?
+This one command does a lot of work for you:
+1.  **Builds the App**: Docker reads the `Dockerfile` to create a self-contained "image" of your Python application with all its dependencies.
+2.  **Starts Services**: It reads the `docker-compose.yml` file and starts two services: `app` (your Flask API) and `ollama` (the AI engine).
+3.  **Downloads the Model**: The startup script (`start.sh`) automatically tells the `ollama` service to download the `Llama-3.2-1B-Instruct-GGUF` model. This may take 5-10 minutes, depending on the server's network speed.
+4.  **Exposes the App**: The `docker-compose.yml` file is configured to map port 80 on your VPS to the application's port 5000. This means you can access the app using the standard web port, without needing to specify a port number.
 
-**Q: The AI is hallucinating / not finding facts.** **A:** Ensure your database is up to date.
+---
 
--   **Docker:** See the rebuild instruction above.
+## Part 4: Getting Your First AI Analysis
 
--   **Manual:** Delete the `./vector_db` folder and run `python dataset.py`.
+Once the `docker-compose` command finishes, the application is live.
 
-**Q: "Model not found" error.** **A:** Ensure the model name in your code/env matches the specific tag pulled in Ollama. Do not use HuggingFace URLs (e.g., `hf.co/...`) directly with Ollama unless you have pulled them using that exact tag.
+Open a web browser on your computer and navigate to the following URL:
 
-Reference
----------
+**`http://<your_vps_ip>/chat`**
 
-Original tutorial: https://huggingface.co/blog/ngxson/make-your-own-rag
+*(Again, replace `<your_vps_ip>` with your server's IP address.)*
 
-Dataset: https://github.com/LostInBrittany/RAGmonsters
+The first request might be a bit slow as the AI model is loaded into memory. Subsequent requests will be faster. You should see a JSON response in your browser containing the full business analysis report.
+
+---
+
+## Part 5: Managing Your Application
+
+Here are a few useful commands to manage your running application. Run these from inside your project directory (`/root/bas-ai` or similar).
+
+*   **To view the application logs in real-time:**
+    ```bash
+    docker-compose logs -f
+    ```
+    This is useful for debugging or seeing what the application is doing. Press `Ctrl+C` to stop viewing the logs.
+
+*   **To stop the application:**
+    ```bash
+    docker-compose down
+    ```
+    This will gracefully stop and remove the running containers. Your downloaded AI model will be preserved.
+
+*   **To restart the application:**
+    Simply run the start command again.
+    ```bash
+    docker-compose up --build -d
+    ```
